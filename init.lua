@@ -24,7 +24,7 @@ What is Kickstart?
 
   Kickstart.nvim is *not* a distribution.
 
-  Kickstart.nvim is a starting point for your own configuraqqtion.
+  Kickstart.nvim is a starting point for your own configuration.
     The goal is that you can read every line of code, top-to-bottom, understand
     what your configuration is doing, and modify it to suit your needs.
 
@@ -287,6 +287,15 @@ require('lazy').setup({
   --        end,
   --    }
   --
+  {
+    'lervag/vimtex',
+    lazy = false, -- we don't want to lazy load VimTeX
+    -- tag = "v2.15", -- uncomment to pin to a specific release
+    init = function()
+      -- VimTeX configuration goes here, e.g.
+      vim.g.vimtex_view_method = 'zathura'
+    end,
+  },
   -- Here is a more advanced example where we pass configuration
   -- options to `gitsigns.nvim`.
   --
@@ -691,9 +700,13 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
+        clangd = {
+          filetypes = { 'c', 'cpp' },
+        },
         -- gopls = {},
-        -- pyright = {},
+        pyright = {
+          filetypes = { 'python' },
+        },
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -891,6 +904,15 @@ require('lazy').setup({
         default = { 'lsp', 'path', 'snippets', 'lazydev', 'buffer' },
         providers = {
           lazydev = { module = 'lazydev.integrations.blink', score_offset = 100 },
+          buffer = {
+            opts = {
+              get_bufnrs = function()
+                return vim.tbl_filter(function(bufnr)
+                  return vim.api.nvim_buf_is_loaded(bufnr) and vim.bo[bufnr].buflisted and vim.bo[bufnr].buftype == ''
+                end, vim.api.nvim_list_bufs())
+              end,
+            },
+          },
         },
       },
 
