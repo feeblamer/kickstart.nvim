@@ -219,6 +219,55 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
+-- LilyPond uses `.ly` scores and `.ily` include files.
+vim.filetype.add {
+  extension = {
+    ly = 'lilypond',
+    ily = 'lilypond',
+  },
+}
+
+vim.api.nvim_create_autocmd('FileType', {
+  desc = 'Configure LilyPond buffers',
+  group = vim.api.nvim_create_augroup('kickstart-lilypond', { clear = true }),
+  pattern = 'lilypond',
+  callback = function(event)
+    vim.bo[event.buf].makeprg = 'lilypond $*'
+    vim.bo[event.buf].errorformat = table.concat({
+      '%f:%l:%c: %m',
+      '%f:%l: %m',
+      'In file included from %f:%l:',
+      '\t\tfrom %f:%l%m',
+    }, ',')
+
+    vim.api.nvim_buf_create_user_command(event.buf, 'LilypondBuild', function()
+      vim.cmd.write()
+      vim.cmd 'silent make! %'
+      vim.cmd.cwindow()
+    end, { desc = 'Build the current LilyPond file with lilypond' })
+
+    vim.keymap.set('n', '<leader>mb', '<cmd>LilypondBuild<CR>', {
+      buffer = event.buf,
+      desc = '[M]usic [B]uild LilyPond file',
+    })
+  end,
+})
+
+vim.api.nvim_create_autocmd('FileType', {
+  desc = 'Set commentstring for common filetypes',
+  group = vim.api.nvim_create_augroup('kickstart-commentstrings', { clear = true }),
+  pattern = { 'zsh', 'typst', 'clojure' },
+  callback = function(event)
+    local commentstrings = {
+      zsh = '# %s',
+      typst = '// %s',
+      clojure = '; %s',
+    }
+
+    vim.bo[event.buf].commentstring = commentstrings[event.match]
+  end,
+})
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -311,6 +360,55 @@ require('lazy').setup({
         changedelete = { text = '~' },
       },
     },
+  },
+  {
+    'numToStr/Comment.nvim',
+    dependencies = {
+      'JoosepAlviste/nvim-ts-context-commentstring',
+    },
+    keys = {
+      {
+        '<C-/>',
+        function()
+          require('Comment.api').toggle.linewise.current()
+        end,
+        mode = 'n',
+        desc = 'Toggle comment',
+      },
+      {
+        '<C-_>',
+        function()
+          require('Comment.api').toggle.linewise.current()
+        end,
+        mode = 'n',
+        desc = 'Toggle comment',
+      },
+      {
+        '<C-/>',
+        function()
+          local esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
+          vim.api.nvim_feedkeys(esc, 'nx', false)
+          require('Comment.api').toggle.linewise(vim.fn.visualmode())
+        end,
+        mode = 'x',
+        desc = 'Toggle comment',
+      },
+      {
+        '<C-_>',
+        function()
+          local esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
+          vim.api.nvim_feedkeys(esc, 'nx', false)
+          require('Comment.api').toggle.linewise(vim.fn.visualmode())
+        end,
+        mode = 'x',
+        desc = 'Toggle comment',
+      },
+    },
+    opts = function()
+      return {
+        pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
+      }
+    end,
   },
 
   -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
@@ -1000,7 +1098,7 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'clojure', 'css', 'diff', 'html', 'javascript', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'typst', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
